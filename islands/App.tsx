@@ -1,4 +1,4 @@
-import { StateUpdater, useState } from "preact/hooks";
+import { StateUpdater, useEffect, useState } from "preact/hooks";
 import {
   CalcResult,
   Persons,
@@ -16,14 +16,20 @@ async function calculate(data: PersonsWithDate) {
 
 export default function App() {
   const [name, setName] = useState<string>();
-  const [agendaDate, setAgendaDate] = useState<string>();
+  const [agendaDate, setAgendaDate] = useState<string>(""); // will be set by the effect hook
   const [date, setDate] = useState<string | undefined>();
   const [dateDisabled, setDateDisabled] = useState(true);
+  // const [score, setScore] = useState(0);
   const [persons, setPersons] = useState<Persons>({});
   const [workResult, setWorkResult] = useState<WorkResult>({
     result: [],
     totalScore: [],
   });
+
+  useEffect(() => {
+    setAgendaDate(new Date().toISOString().slice(0, 10));
+    setName("");
+  }, []);
 
   const addPersonAndCalculate = async () => {
     if (!name) return;
@@ -54,6 +60,7 @@ export default function App() {
       />
       <h2>Ajouter empechement</h2>
       <div style="">
+        <label style="margin:5px">nom:</label>
         <input
           value={name}
           onChange={(e) => {
@@ -70,6 +77,7 @@ export default function App() {
               setDateDisabled(disabled);
             }}
           />
+          <label disabled={dateDisabled} style="margin:5px">date:</label>
           <input
             type="date"
             value={date}
@@ -79,6 +87,14 @@ export default function App() {
             }}
           />
         </div>
+        {/* <label style="margin:5px">score inital:</label> */}
+        {/* <input */}
+        {/*   type="number" */}
+        {/*   value={score} */}
+        {/*   onChange={(e) => { */}
+        {/*     setScore(parseInt((e.target! as HTMLInputElement).value)); */}
+        {/*   }} */}
+        {/* /> */}
       </div>
 
       <button onClick={() => addPersonAndCalculate()}>Add date</button>
@@ -103,6 +119,14 @@ export default function App() {
           <div>
             <Agenda workResult={workResult.result} />
             <Scores scores={workResult.totalScore} />
+            <button
+              onClick={async () =>
+                setWorkResult(
+                  await calculate({ persons, agendaDate }),
+                )}
+            >
+              refresh
+            </button>
           </div>
         )}
     </div>

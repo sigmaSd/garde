@@ -2,13 +2,23 @@ import { StateUpdater, useState } from "preact/hooks";
 import {
   CalcResult,
   Persons,
+  PersonsWithDate,
   TotalScoreType,
   WorkResult,
 } from "../types/app.ts";
 
+async function calculate(data: PersonsWithDate) {
+  return await fetch("/api/work", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }).then((r) => r.json());
+}
+
 export default function App() {
-  const [name, setName] = useState<string>("b");
-  const [dates, setDates] = useState<string>("2023-02-01 2023-02-02");
+  const [name, setName] = useState<string>();
+  const [agendaDate, setAgendaDate] = useState<string>();
+  const [date, setDate] = useState<string | undefined>();
+  const [dateDisabled, setDateDisabled] = useState(true);
   const [persons, setPersons] = useState<Persons>({});
   const [workResult, setWorkResult] = useState<WorkResult>({
     result: [],
@@ -16,46 +26,77 @@ export default function App() {
   });
 
   const addPersonAndCalculate = async () => {
+    if (!name) return;
+    if (!agendaDate) {
+      alert("set Date");
+      return;
+    }
+
     const newPersons = { ...persons };
-    newPersons[name] = dates.split(" ").filter((e) => e);
+    if (newPersons[name]) date && newPersons[name].push(date);
+    else newPersons[name] = date ? [date] : [];
     setPersons(newPersons);
 
-    const result = await fetch("/api/work", {
-      method: "POST",
-      body: JSON.stringify(newPersons),
-    }).then((r) => r.json());
-    setWorkResult(result);
+    setWorkResult(await calculate({ persons: newPersons, agendaDate }));
   };
 
   return (
     <div>
+      <h2>Date</h2>
+      <input
+        type="date"
+        value={agendaDate}
+        onChange={async (e) => {
+          const newDate = (e.target! as HTMLInputElement).value;
+          setAgendaDate(newDate);
+          setWorkResult(await calculate({ persons, agendaDate: newDate }));
+        }}
+      />
       <h2>Ajouter empechement</h2>
-      <input
-        value={name}
-        onChange={(e) => {
-          return setName((e.target! as HTMLInputElement).value);
-        }}
-      />
-      <input
-        value={dates}
-        onChange={(e) => {
-          return setDates((e.target! as HTMLInputElement).value);
-        }}
-      />
+      <div style="">
+        <input
+          value={name}
+          onChange={(e) => {
+            return setName((e.target! as HTMLInputElement).value);
+          }}
+        />
+        <div style="margin:5px">
+          <input
+            type="checkbox"
+            checked={!dateDisabled}
+            onChange={() => {
+              const disabled = !dateDisabled;
+              if (disabled) setDate(undefined);
+              setDateDisabled(disabled);
+            }}
+          />
+          <input
+            type="date"
+            value={date}
+            disabled={dateDisabled}
+            onChange={(e) => {
+              return setDate((e.target! as HTMLInputElement).value);
+            }}
+          />
+        </div>
+      </div>
 
       <button onClick={() => addPersonAndCalculate()}>Add date</button>
 
-      <li>
-        {persons && Object.entries(persons).map((p) => (
-          <Person
-            name={p[0]}
-            date={p[1]}
-            persons={persons}
-            setPersons={setPersons}
-            setWorkResult={setWorkResult}
-          />
-        ))}
-      </li>
+      {agendaDate && persons && Object.keys(persons).length !== 0 && (
+        <li>
+          {Object.entries(persons).map((p) => (
+            <Person
+              name={p[0]}
+              date={p[1]}
+              agendaDate={agendaDate}
+              persons={persons}
+              setPersons={setPersons}
+              setWorkResult={setWorkResult}
+            />
+          ))}
+        </li>
+      )}
 
       {(workResult.result.length !== 0) &&
         (
@@ -85,7 +126,11 @@ function Agenda({ workResult }: { workResult: CalcResult[] }) {
       <h2>Agenda</h2>
       <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));">
         {workResult.map((r) => (
-          <div>{`${new Date(r.date).toDateString()} -> ${r.name}`}</div>
+          <div>
+            <i style="color:green">{new Date(r.date).toDateString()}</i>
+            {" -> "}
+            <i>{r.name}</i> <i style="color:#ff1234">{r.score}</i>
+          </div>
         ))}
       </div>
     </div>
@@ -93,9 +138,10 @@ function Agenda({ workResult }: { workResult: CalcResult[] }) {
 }
 
 function Person(
-  { name, date, persons, setPersons, setWorkResult }: {
+  { name, date, agendaDate, persons, setPersons, setWorkResult }: {
     name: string;
     date: string[];
+    agendaDate: string;
     persons: Persons;
     setPersons: StateUpdater<Persons>;
     setWorkResult: StateUpdater<WorkResult>;
@@ -106,11 +152,7 @@ function Person(
     delete newPersons[name];
     setPersons(newPersons);
 
-    const result = await fetch("/api/work", {
-      method: "POST",
-      body: JSON.stringify(newPersons),
-    }).then((r) => r.json());
-    setWorkResult(result);
+    setWorkResult(await calculate({ persons: newPersons, agendaDate }));
   };
   return (
     <ul>

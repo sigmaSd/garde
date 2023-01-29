@@ -9,18 +9,25 @@ class Player {
   }
 }
 
-function genDates() {
-  return Array(29)
-    .fill(0)
-    .map((_, i) => new Date(`2023-02-${i.toString().padStart(2, "0")}`))
-    .slice(1);
+function genDates(agendaDate: Date) {
+  const date = agendaDate;
+  const month = date.getMonth();
+  date.setDate(1);
+
+  const result = [];
+  while (date.getMonth() === month) {
+    date.setDate(date.getDate() + 1);
+    result.push(new Date(date));
+  }
+  return result;
 }
 
 function genScores(dates: Date[]) {
   const scores = [];
   for (const date of dates) {
-    const dayName = date.toLocaleDateString("us-US", { weekday: "long" });
-    const score = dayName === "Sunday" ? 2 : dayName === "Saturday" ? 1.5 : 1;
+    // 0 sunday
+    // 6 saturday
+    const score = date.getDay() === 0 ? 2 : date.getDay() === 6 ? 1.5 : 1;
 
     scores.push({
       date,
@@ -32,7 +39,7 @@ function genScores(dates: Date[]) {
 }
 
 function assign(players: Player[], ds: { date: Date; score: number }) {
-  const playersSortedWithLowestScore = players
+  const playersSortedWithLowestScore = shuffle(players)
     .sort((p1, p2) => p1.score - p2.score);
 
   for (const player of playersSortedWithLowestScore) {
@@ -46,13 +53,15 @@ function assign(players: Player[], ds: { date: Date; score: number }) {
   console.warn("All players declared the same date");
 }
 
-export function calculate(playersInput: Record<string, Date[]>) {
-  const players = shuffle(
-    Object.entries(playersInput)
-      .map((p) => new Player(p[0], p[1])),
-  );
+export function calculate(
+  playersInput: Record<string, Date[]>,
+  agendaDate: Date,
+) {
+  const players = Object.entries(playersInput)
+    .map((p) => new Player(p[0], p[1]));
 
-  const dates = genDates();
+  const dates = genDates(agendaDate);
+
   const datesWithScores = genScores(dates);
 
   const result = [];

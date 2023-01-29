@@ -1,10 +1,12 @@
 import { Handlers } from "$fresh/server.ts";
-import { Persons } from "../../types/app.ts";
+import { PersonsWithDate } from "../../types/app.ts";
 import { calculate } from "./calculate.ts";
 
 export const handler: Handlers = {
   async POST(req) {
-    const playersInputString: Persons = await req.json();
+    const resp: PersonsWithDate = await req.json();
+
+    const { persons: playersInputString, agendaDate } = resp;
 
     // NOTE: dates are not serialized through json so we have to do this
     const playersInput = Object.fromEntries(
@@ -13,7 +15,7 @@ export const handler: Handlers = {
       }),
     );
 
-    const result = calculate(playersInput);
+    const result = calculate(playersInput, new Date(agendaDate));
 
     return new Response(JSON.stringify(result));
   },

@@ -1,12 +1,19 @@
 import { StateUpdater, useState } from "preact/hooks";
+import {
+  CalcResult,
+  Persons,
+  TotalScoreType,
+  WorkResult,
+} from "../types/app.ts";
 
 export default function App() {
   const [name, setName] = useState<string>("b");
   const [dates, setDates] = useState<string>("2023-02-01 2023-02-02");
-  const [persons, setPersons] = useState<Record<string, string[]>>({});
-  const [workResult, setWorkResult] = useState<
-    { result: CalcResult[]; totalScore: TotalScoreType[] }
-  >({ result: [], totalScore: [] });
+  const [persons, setPersons] = useState<Persons>({});
+  const [workResult, setWorkResult] = useState<WorkResult>({
+    result: [],
+    totalScore: [],
+  });
 
   const addPersonAndCalculate = async () => {
     const newPersons = { ...persons };
@@ -61,17 +68,6 @@ export default function App() {
   );
 }
 
-interface CalcResult {
-  name: string;
-  date: string;
-  score: number;
-}
-
-interface TotalScoreType {
-  name: string;
-  score: number;
-}
-
 function Scores({ scores }: { scores: TotalScoreType[] }) {
   return (
     <div>
@@ -100,11 +96,9 @@ function Person(
   { name, date, persons, setPersons, setWorkResult }: {
     name: string;
     date: string[];
-    persons: Record<string, string[]>;
-    setPersons: StateUpdater<typeof persons>;
-    setWorkResult: StateUpdater<
-      { result: CalcResult[]; totalScore: TotalScoreType[] }
-    >;
+    persons: Persons;
+    setPersons: StateUpdater<Persons>;
+    setWorkResult: StateUpdater<WorkResult>;
   },
 ) {
   const remove = async () => {
